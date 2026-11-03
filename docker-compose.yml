@@ -1,0 +1,54 @@
+# AI Contribution Weight: [100%] AI Generated / [0%] Human Refactored
+# Author: Claude Code agent (claude-opus-5-5) - see code_AI_history.md
+# App + its own single-tenant PostgreSQL database. No other services.
+# Usage: cp .env.example .env  (set POSTGRES_PASSWORD)  &&  docker compose up --build
+
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+    image: peer-review-evaluation-gateway:local
+    environment:
+      PORT: "3000"
+      DATABASE_URL: postgres://${POSTGRES_USER:-prg_app}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-peer_review}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - prg-net
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-peer_review}
+      POSTGRES_USER: ${POSTGRES_USER:-prg_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - prg-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - prg-net
+    # No host port published: the database is reachable only from the app.
+
+networks:
+  prg-net:
+    driver: bridge
+
+volumes:
+  prg-db-data:
