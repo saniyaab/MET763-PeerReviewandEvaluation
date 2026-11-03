@@ -1,0 +1,17 @@
+// AI Contribution Weight: [100%] AI Generated / [0%] Human Refactored
+// Author: Claude Code agent (claude-opus-5-5) - see code_AI_history.md
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": false
+  },
+  "include": ["src/**/*.ts"]
+}

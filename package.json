@@ -1,0 +1,26 @@
+{
+  "//": "AI Contribution Weight: [100%] AI Generated / [0%] Human Refactored | Author: Claude Code agent (claude-opus-5-5) | see code_AI_history.md",
+  "name": "peer-review-evaluation-gateway",
+  "version": "0.1.0",
+  "description": "Project Portal Domain 3: Peer Review & Evaluation Gateway (CS763 PA1 barebones service)",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.15.4",
+    "typescript": "^5.9.2"
+  }
+}

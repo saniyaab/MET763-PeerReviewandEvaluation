@@ -1,0 +1,7 @@
+# AI Contribution Weight: [100%] AI Generated / [0%] Human Refactored
+node_modules/
+dist/
+.env
+*.log
+!pipeline-logs/*.log
+reports/
