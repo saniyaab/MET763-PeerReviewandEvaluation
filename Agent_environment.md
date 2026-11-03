@@ -152,7 +152,7 @@ This file records the exact configuration of the autonomous AI developer agent u
 | Python | 3.13.18 |
 | Docker / Compose | Docker Engine 29.9.2 / Compose v5.6.1 |
 | git / gh | 2.43.0 / 2.89.0 |
-| Network | Egress through an allow-list proxy. **registry.npmjs.org and Docker Hub were blocked in this session.** So `npm install` and `docker build` could not run locally. Building, image creation, the compose smoke test and all scans were verified on GitHub Actions instead (see `pipeline-logs/`) |
+| Network | Egress through an allow-list proxy. **registry.npmjs.org and Docker Hub were blocked in this session.** So `npm install` and `docker build` could not run locally. Building, image creation, the compose smoke test and all scans were verified on GitHub Actions instead (see `pipeline-logs/`). GitHub Actions artifact storage (`*.blob.core.windows.net`) and repository-settings writes through the GitHub API were also blocked |
 
 ### 5.2 Student's computer (bridge)
 

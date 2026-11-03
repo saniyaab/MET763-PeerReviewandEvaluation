@@ -104,7 +104,20 @@ This log shows the AI developer agent working end to end. The student's exact pr
 
 ## 2. Test evidence
 
-<!-- TEST_EVIDENCE -->
+The code above was compiled, containerized and run on GitHub Actions in run [#41578304129](https://github.com/saniyaab/MET763-PeerReviewandEvaluation/actions/runs/41578304129). Full log: [`pipeline-logs/pa1-run-41578304129.log`](pipeline-logs/pa1-run-41578304129.log).
+
+Smoke test output: `docker compose up` (app + PostgreSQL), then curl. Copied from the log:
+
+```text
+--- /health
+{"status":"ok","service":"peer-review-evaluation-gateway"}
+--- /health/ready
+{"status":"ready","database":"up"}
+--- /api/v1
+{"service":"peer-review-evaluation-gateway","domain":"Project Portal - Domain 3","version":"0.1.0","spec":"spec.md"}
+```
+
+Scanner summary: Semgrep 0 findings (136 rules). Trivy: dependencies 0, image 23 (all in the base image's bundled npm CLI). SonarQube Cloud quality gate OK, 0 issues. Details: [`pipeline-logs/README.md`](pipeline-logs/README.md).
 
 ## 3. Generated code (verbatim copies of the repository files)
 
