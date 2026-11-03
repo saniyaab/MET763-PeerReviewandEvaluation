@@ -1,0 +1,160 @@
+# AI Contribution Weight: [100%] AI Generated / [0%] Human Refactored
+# Author: Claude Code agent (claude-opus-5-5) - see code_AI_history.md
+#
+# DevSecOps pipeline for the Peer Review & Evaluation Gateway (Node.js/TypeScript).
+#   build     - npm ci, TypeScript compile, multi-stage Docker build, compose smoke test
+#   trivy     - dependency (filesystem / package-lock) scan + container image scan
+#   semgrep   - SAST with TypeScript / Node.js / Docker / secrets rulesets
+#   sonarcloud- SAST + code quality on SonarQube Cloud
+# All security scans are NON-BLOCKING (continue-on-error + exit-code 0): findings
+# are reported in the logs and uploaded as artifacts but never fail the pipeline.
+#
+# Supply-chain note: trivy-action/setup-trivy tags were compromised in March 2026
+# (CVE-2026-33634). This pipeline does not use those actions; it runs the
+# official Trivy container pinned to 0.69.3, a version listed as unaffected.
+
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: peer-review-evaluation-gateway
+  TRIVY_IMAGE: aquasec/trivy:0.69.3
+  SEMGREP_IMAGE: semgrep/semgrep:1.150.0
+
+jobs:
+  build:
+    name: Build & Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies (npm ci)
+        run: npm ci --ignore-scripts
+
+      - name: Compile TypeScript
+        run: npm run build
+
+      - name: Build multi-stage Docker image
+        run: docker build --target runtime -t "$IMAGE_NAME:${{ github.sha }}" .
+
+      - name: Smoke test with docker compose (app + database)
+        run: |
+          echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" > .env
+          docker compose up -d --build
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/health/ready; then echo; break; fi
+            sleep 2
+          done
+          echo "--- /health";       curl -fsS http://127.0.0.1:3000/health; echo
+          echo "--- /health/ready"; curl -fsS http://127.0.0.1:3000/health/ready; echo
+          echo "--- /api/v1";       curl -fsS http://127.0.0.1:3000/api/v1; echo
+          docker compose ps
+
+      - name: Compose logs and teardown
+        if: always()
+        run: |
+          docker compose logs --no-color || true
+          docker compose down -v || true
+          rm -f .env
+
+      - name: Save image for scanning
+        run: docker save "$IMAGE_NAME:${{ github.sha }}" -o image.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: image.tar
+          retention-days: 3
+
+  trivy:
+    name: Trivy dependency + image scan (non-blocking)
+    runs-on: ubuntu-latest
+    needs: build
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Trivy dependency scan (filesystem / package-lock.json)
+        run: |
+          mkdir -p reports
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE" fs \
+            --scanners vuln,secret,misconfig --skip-files image.tar --exit-code 0 --format table /src
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE" fs \
+            --scanners vuln,secret,misconfig --skip-files image.tar --exit-code 0 --format sarif \
+            --output /src/reports/trivy-fs.sarif /src
+
+      - name: Trivy container image scan
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE" image \
+            --input /src/image.tar --exit-code 0 --format table
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE" image \
+            --input /src/image.tar --exit-code 0 --format sarif \
+            --output /src/reports/trivy-image.sarif
+
+      - name: Upload Trivy reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reports
+          path: reports/
+
+  semgrep:
+    name: Semgrep SAST (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Semgrep scan
+        run: |
+          mkdir -p reports
+          docker run --rm -v "$PWD:/src" -w /src "$SEMGREP_IMAGE" semgrep scan \
+            --config p/typescript --config p/nodejs --config p/expressjs \
+            --config p/dockerfile --config p/secrets --config p/security-audit \
+            --metrics off --text --sarif-output=reports/semgrep.sarif || true
+
+      - name: Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: reports/
+
+  sonarcloud:
+    name: SonarQube Cloud SAST (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout (full history for SonarQube Cloud)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube Cloud scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
