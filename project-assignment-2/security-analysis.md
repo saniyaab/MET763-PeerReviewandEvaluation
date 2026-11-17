@@ -396,6 +396,7 @@ Likelihood (L) and impact (I) are High/Medium/Low for the PA2 build; risk is the
 | T-05 | S | E3, P1, P2, P4 | Unauthenticated caller reaches every business function | V-01 | H | H | **Critical** | M-01 |
 | T-06 | R | E3, P1, DS3 | No request or audit logging; anonymous actions leave no trace | – | H | M | High | M-15, M-16 |
 | T-08 | S | E5 | CI actions are pinned by tag (`@v5`, `@v6`); a moved tag runs attacker code with `SONAR_TOKEN` | – | L | M | Low | M-21 |
+
 | T-10 | T | P1, F1, F2 | Plain HTTP: requests/responses can be modified in transit once the service is exposed beyond localhost | – | L | H | Medium | M-14 |
 | T-11 | I | P1 | Error handler returns raw DB/runtime messages; malformed JSON returns 500 with parser text | V-09 | H | M | High | M-09 |
 | T-12 | D | P1, F1 | No rate limit; 1 MB bodies accepted on every write route | V-10 | H | M | High | M-10, M-17 |
@@ -487,4 +488,4 @@ PA3 requires all confirmed CWEs **plus exactly 3 STRIDE threats**, each with a o
 2. **Deployment.** The analysis assumes the PA2 compose stack (`127.0.0.1:3000`, database on an internal bridge network). Exposure beyond localhost raises T-10, T-43 and T-44 to High.
 3. **Identity source.** Users, courses, labs and enrollment come from static mock data (`src/mock/data.ts`), as the project rules require. Token claims in PA3 must reference the same user ids.
 4. **Validation level.** Findings were confirmed by code review and, where noted, by the passing CI integration tests. Live exploit proofs and DAST are PA4 deliverables.
-5. **SonarQube Cloud.** Issues and hotspots were not available to the agent; any new findings from the student's export will be added to `sast-triage-report.md` and mapped to mitigations here.
+5. **SonarQube Cloud.** SonarCloud returned 0 issues and 0 hotspots, but it analyzes `main` as a short-lived branch against the deleted `bootstrap-lockfile` branch, so that result is inconclusive (see `sast-triage-report.md`, section 2.2). Once the branch setting is fixed and the pipeline re-runs, any new findings will be added to the triage report and mapped to mitigations here.

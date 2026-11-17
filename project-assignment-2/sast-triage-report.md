@@ -12,7 +12,7 @@
 | Prompt summary | "write sast-triage-report.md … put every Semgrep, SonarQube and Trivy alert in a ledger as a true or false positive … review the code by hand and document at least 3 confirmed vulnerabilities from different layers, each with its CWE ID, file/line and root cause" (full verbatim prompt in [`/.ai_logs/pa2-session-log.md`](../.ai_logs/pa2-session-log.md)) |
 | Session link | https://claude.ai/code/session_01Mj79JHpoGSSrKQhMcsCbL5 |
 | Human verification status | **PENDING.** Student must re-check each finding against the code before the PA2 release tag |
-| Known gap | SonarQube Cloud issues not yet in the ledger: sonarcloud.io is blocked from the agent's network. Student is exporting them; section 2.2 will be completed from that export |
+| SonarQube data source | Read on 2026-11-17 through the SonarCloud Web API in the Claude desktop app's built-in browser, signed in as the student (read-only queries; no settings changed). See section 2.2 |
 
 ---
 <!-- /AI_DELIVERABLE_METADATA -->
@@ -28,7 +28,7 @@
 | Source | Raw alerts | True positive | False positive | Notes |
 |---|---|---|---|---|
 | Semgrep 1.150.0 (6 rulesets, 136 rules, 19 files) | **0** | 0 | 0 | Clean scan, but 12 confirmed vulnerabilities exist (section 4): every one is a scanner **false negative** |
-| SonarQube Cloud | *pending export* | – | – | See section 2.2 |
+| SonarQube Cloud (Sonar way core: 248 TypeScript + 37 Docker rules, 13 files, 1,246 lines) | **0** issues, **0** hotspots | 0 | 0 | **Result not trustworthy:** SonarCloud analyzes `main` as a short-lived branch against a missing reference branch (section 2.2) |
 | Trivy 0.69.3 — filesystem (`package-lock.json`, secrets, misconfig) | 0 | 0 | 0 | App dependencies clean (`express`, `pg` and their transitive packages) |
 | Trivy 0.69.3 — Dockerfile config | 0 | 0 | 0 | Non-root `USER node`, multi-stage, healthcheck present |
 | Trivy 0.69.3 — container image | 24 | 24 | 0 | All in the `node:22-alpine` base image: 1 Alpine package, 23 in packages bundled with the global npm CLI. None in the app's own `node_modules` (79 packages, 0 findings) |
@@ -61,11 +61,26 @@ Command (from `.github/workflows/devsecops.yml`): `semgrep scan --config p/types
 
 ### 2.2 SonarQube Cloud
 
-The pipeline log shows `ANALYSIS SUCCESSFUL` and `EXECUTION SUCCESS` (project key `saniyaab_MET763-PeerReviewandEvaluation`, branch `main`), but the scanner does not print issues into the log, and the agent cannot reach sonarcloud.io. **Status: pending the student's export of Issues and Security Hotspots.** Each exported issue will be added below as TP or FP with the same rules.
+**How the data was collected.** sonarcloud.io is blocked from the agent's workspace, so the student signed in to SonarCloud in the Claude desktop app's built-in browser and the agent read the project through SonarCloud's Web API from that page (read-only `GET` requests: `issues/search`, `hotspots/search`, `measures/component`, `components/tree`, `project_branches/list`, `qualityprofiles/search`, `ce/activity`, `ce/task`). Nothing in SonarCloud was changed.
+
+| What was checked | Result |
+|---|---|
+| Analyses of `main` | 3 successful analyses on 2026-11-17 (02:43, 02:47, 05:33 UTC); the latest is commit `c5e2f36` |
+| Files analyzed (source) | 13: the 12 `functional-codebase/src/*.ts` files and `Dockerfile`. `docker-compose.yml` is listed in `sonar.sources` but was not analyzed as a source file; `tests/` is configured as test code |
+| Size | 1,246 lines of code |
+| Quality profile | "Sonar way core": 248 TypeScript rules, 37 Docker rules |
+| Issues (`issues/search`, `branch=main`, all statuses) | **0** (0 bugs, 0 vulnerabilities, 0 code smells) |
+| Security hotspots (`hotspots/search`, to review and reviewed) | **0** |
+| Quality gate | OK |
+| **Analysis warning (every run)** | `Could not find ref 'bootstrap-lockfile' in refs/heads, refs/remotes, refs/remotes/upstream or refs/remotes/origin. You may see unexpected issues and changes.` |
+
+**Why the zero is not a real "clean" result.** `project_branches/list` shows that SonarCloud's *main* branch for this project is still `bootstrap-lockfile` (a temporary branch the agent pushed in PA1 to generate `package-lock.json`, recorded in `/code_AI_history.md` Entry 2, and since deleted: `git ls-remote --heads origin` now lists only `main`), and that `main` is registered as a **SHORT** (short-lived) branch with `mergeBranch: bootstrap-lockfile`. SonarCloud reports issues on a short-lived branch only for code that changed relative to its merge branch. Because the CI checkout cannot find `bootstrap-lockfile`, that comparison fails (the warning above), and the 0 issues / 0 hotspots cannot be taken as evidence that the rules found nothing. With 248 rules over 1,246 lines, at least some maintainability findings would normally be expected.
 
 | ID | Rule | Type / severity | File:line | Classification | Reasoning |
 |---|---|---|---|---|---|
-| SQ-? | *pending export* | | | | |
+| SQ-00 | *(no issues or hotspots returned)* | – | – | **Inconclusive (tool misconfiguration)** | No alerts to classify as TP or FP. The 12 manual findings in section 4 are SonarQube **false negatives** for this run, partly because of the branch setup and partly for the reasons in section 3 |
+
+**Fix (pipeline configuration, not application code):** in SonarCloud → project *Administration → Branches and Pull Requests*, make `main` the main branch (rename the main branch to `main`, or delete `bootstrap-lockfile` and set `main` as main), then re-run the pipeline and re-triage the result into this table. Until then, SonarQube's contribution to this baseline is "0 alerts, inconclusive".
 
 ### 2.3 Trivy
 
@@ -109,6 +124,7 @@ The pipeline log shows `ANALYSIS SUCCESSFUL` and `EXECUTION SUCCESS` (project ke
 3. **Business logic is invisible to SAST.** Grade inflation via out-of-range scores, ballot-stuffing peer reviews, self-assigned faculty roles and the TOCTOU on the rubric "in use" rule need knowledge of the grading domain.
 4. **Data flows across files.** User input enters in `routes/evaluations.ts`, is scored in `services/scoring.ts` and leaves as CSV in `services/aggregation.ts`. Community Semgrep rules are mostly single-file and do not track a JSON body field into a CSV export.
 5. **Tests were skipped.** Semgrep's default ignore list excluded `tests/`, which is harmless here but means test code is unreviewed by SAST.
+6. **SonarQube compared against a branch that no longer exists.** Its analysis of `main` ran as a short-lived branch against the deleted `bootstrap-lockfile` branch, so its zero result is inconclusive (section 2.2). This configuration flaw came from the agent's PA1 lockfile workaround (the first SonarCloud analysis ran on `bootstrap-lockfile`, which became the project's main branch) and went unnoticed because the scan job is non-blocking and the log only says `ANALYSIS SUCCESSFUL`.
 
 ## 4. Confirmed vulnerabilities (manual review)
 
