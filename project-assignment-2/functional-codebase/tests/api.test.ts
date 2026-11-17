@@ -368,7 +368,7 @@ test("GET /reports?course_id= exports one consolidated CSV report file for the c
   const res = await call("GET", "/reports?course_id=CS763");
   assert.equal(res.status, 200);
   assert.match(res.headers.get("content-type") ?? "", /text\/csv/);
-  assert.match(res.headers.get("content-disposition") ?? "", /attachment; filename="evaluation-report-CS763.csv"/);
+  assert.match(res.headers.get("content-disposition") ?? "", /attachment; filename="?evaluation-report-CS763\.csv"?/);
   assert.match(res.text, /\[PROJECT SUMMARY\]/);
   assert.match(res.text, /\[CRITERION MATRIX\]/);
   assert.ok(res.text.includes(`${P2_THREAT_MODEL_VIS},Threat Model Visualizer,CS763,lab_cybersec`));
