@@ -1,0 +1,29 @@
+{
+  "//": "Language/Stack: Node.js 22 + TypeScript 5.9 (Express 5, pg) | Tool: Claude Code agent (claude-opus-5-5) | AI Contribution: 100% AI generated / 0% human refactored | Human Modifications: none | Verification: CI build + tests; human review PENDING | Confidence: Medium | see /.ai_logs/",
+  "name": "peer-review-evaluation-gateway",
+  "version": "0.2.0",
+  "description": "Project Portal Domain 3: Peer Review & Evaluation Gateway (CS763 PA2 functional baseline)",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:test": "tsc -p tsconfig.test.json",
+    "start": "node dist/server.js",
+    "test:unit": "npm run build:test && node --test dist-test/tests/scoring.test.js",
+    "test:integration": "npm run build:test && node --test --test-concurrency=1 dist-test/tests/api.test.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.15.4",
+    "typescript": "^5.9.2"
+  }
+}

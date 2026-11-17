@@ -1,0 +1,24 @@
+// Language/Stack: TypeScript 5.9 compiler config (Node.js 22)
+// Tool: Claude Code agent harness (Claude desktop app), model claude-opus-5-5
+// Prompt Summary: PA2 happy-path prompt, full text in /.ai_logs/
+// AI Contribution: 100% AI generated / 0% human refactored
+// Human Modifications: none
+// Verification: CI build (npm run build); human review PENDING
+// Confidence: High
+// File purpose: production build (src/ -> dist/).
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": false
+  },
+  "include": ["src/**/*.ts"]
+}
