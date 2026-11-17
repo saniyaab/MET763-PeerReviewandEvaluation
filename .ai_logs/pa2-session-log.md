@@ -116,3 +116,27 @@ Using the PA2 section of CS763_ProjectDescription.pdf, my functional-codebase/ a
    - Mitigation IDs were renumbered to remove gaps; a script checked that every threat in the STRIDE matrix has a register entry and a mitigation.
 7. Noted for the student: the master spec copy in the course folder does not name Domain 3's "designated sensitive field" for PA3 encryption; flagged as an open question.
 8. No code changed. Committed with `AI:` labels and pushed to `main`; no release tag.
+
+## Prompt 6 — 2026-11-17 00:37 ET (student)
+
+~~~~text
+ive logged into sonarqube on chrome and give you access to use my browser let's try the previous prompt again
+~~~~
+
+**Agent output summary**
+
+- Tried Claude in Chrome: the extension reported it was not connected to this conversation. Told the student, changed nothing, and offered the desktop app's built-in browser as an alternative.
+
+## Prompt 7 — 2026-11-17 00:40 ET (student)
+
+~~~~text
+ok i logged in using the built in browswer and give you access to try the previous prompt again
+~~~~
+
+**Agent output summary**
+
+1. Opened the SonarCloud API in the built-in browser (signed in as the student) and ran read-only Web API queries from the page: issues, hotspots, measures, component tree, branches, quality profiles, compute-engine activity and task warnings. No SonarCloud setting was changed.
+2. Result: 3 successful analyses of `main`, 13 files / 1,246 lines, "Sonar way core" profile (248 TypeScript + 37 Docker rules), **0 issues and 0 hotspots**.
+3. Found why: SonarCloud registers `main` as a **short-lived** branch whose merge target is `bootstrap-lockfile`, the temporary branch the agent created in PA1 (now deleted). Every analysis carries the warning `Could not find ref 'bootstrap-lockfile' ...`, so the zero result is inconclusive rather than clean. Verified the branch history in `/code_AI_history.md` (Entry 2) and with `git ls-remote --heads origin`.
+4. Updated `project-assignment-2/sast-triage-report.md` (metadata block, summary row, full section 2.2 ledger with SQ-00 "inconclusive", root cause and fix, new point 6 in section 3) and `project-assignment-2/security-analysis.md` (section 8, item 5). No code changed; no release tag.
+5. Did not change the SonarCloud branch setting: it is a change to the student's SonarCloud project and was not requested. Offered to do it on request and then re-run and re-triage.
