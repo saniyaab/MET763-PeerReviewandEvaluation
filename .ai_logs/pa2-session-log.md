@@ -79,3 +79,40 @@ and my conceptual_journal_template is in the folder now
    - Run [44004909266](https://github.com/saniyaab/MET763-PeerReviewandEvaluation/actions/runs/44004909266): **success**. Unit 5/5, integration 20/20, SonarQube Cloud analysis successful, Semgrep `Ran 136 rules on 19 files: 0 findings`, Trivy dependency scan of the app's `package-lock.json` clean; the image scan reported 1 MEDIUM Alpine OS-package finding and 23 findings (10 HIGH) in Node packages bundled with npm inside the `node:22-alpine` base image (e.g. `brace-expansion`, `glob`, `@sigstore/core`), not in the app's own dependencies.
 7. Saved the full run log to `project-assignment-2/pipeline-logs/pa2-run-44004909266.log` (GitHub masks secrets as `***`; the compose database password is generated at run time and never printed).
 8. Could not read SonarQube Cloud results from the agent workspace (sonarcloud.io blocked by the egress proxy); the dashboard link is in the pipeline log.
+
+## Prompt 4 — 2026-11-17 00:06 ET (student question)
+
+~~~~text
+is the journal supposed to be a separate part of my submission or is it somthing i update in the github continuously based off the project instructions
+~~~~
+
+**Agent output summary**
+
+- Answered from `CS763_ProjectDescription.pdf`: the journal is a running file at `/.ai_logs/conceptual_journal.md` in the repository, graded at each release tag (14% of PA2, under AI usage) and continued through PA3. Blackboard only gets the summary and release URL. Suggested writing it alongside the work and committing it with a `HUMAN:` label. No files changed.
+
+## Prompt 5 — 2026-11-17 00:22 ET (student; triage report and security analysis)
+
+~~~~text
+CS763 Project Assignment 2, part 2. Repo: https://github.com/saniyaab/MET763-PeerReviewandEvaluation. Course docs are in the folder you can access.
+
+Using the PA2 section of CS763_ProjectDescription.pdf, my functional-codebase/ and its pipeline log, write sast-triage-report.md and security-analysis.md in project-assignment-2/. Don't change any code.
+
+- Triage report: put every Semgrep, SonarQube and Trivy alert in a ledger as a true or false positive. Semgrep found 0, so also review the code by hand and document at least 3 confirmed vulnerabilities from different layers, each with its CWE ID, file/line and root cause. If you can't reach SonarCloud, tell me and I'll export the issues.
+- Security analysis: security requirements, abuse cases, attack trees for 3+ abuse cases, an attack surface map, a DFD with a STRIDE matrix for every component, and mitigations for everything found. Base it on this codebase, not generic examples.
+- Follow the project description's AI logging rules: the AI Deliverable Metadata Block at the top of both files, "AI:" commit labels, and my prompts word for word in /.ai_logs/.
+- Push to main and summarize. Don't tag a release.
+~~~~
+
+**Agent output summary**
+
+1. Tried SonarCloud's API from the agent workspace and from the student's computer: both blocked by the egress proxy (HTTP 403 on CONNECT). Told the student right away (mid-task message) and gave the two public API URLs to export issues and hotspots into the course folder. GitHub Actions artifacts (SARIF/JSON reports) could not be downloaded either (blob storage blocked), so all scanner data came from the saved run log.
+2. Extracted every scanner result from `pipeline-logs/pa2-run-44004909266.log`: Semgrep 0 findings (136 rules, 19 files, `tests/` skipped by default ignore); Trivy filesystem 0, Dockerfile config 0, image 24 (1 Alpine `zlib`, 23 in packages bundled with the npm CLI in `node:22-alpine`; 0 in the app's 79 packages).
+3. Reviewed every file in `functional-codebase/src` by hand and confirmed 12 vulnerabilities across authentication, authorization, input, business logic/state, output, error handling, resource management and database layers (V-01…V-12, CWE-306, 639, 269, 862, 1284, 837, 367, 1236, 209, 674/770, 250, 312), each with file/line ranges and root cause, plus negative results (no SQL injection, header injection or committed secrets).
+4. Wrote `project-assignment-2/sast-triage-report.md` (metadata block; TP/FP ledger for Semgrep, SonarQube placeholder, all 24 Trivy alerts; why SAST missed the flaws; confirmed vulnerabilities; PA3 hand-off).
+5. Wrote `project-assignment-2/security-analysis.md` (metadata block; assets; role/permission matrix and 26 security requirements; 9 abuse cases; 4 Mermaid attack trees; attack surface map of 23 entry points; level-1 DFD with 4 trust boundaries; STRIDE matrix over every DFD element; 44-threat register; 22 mitigations with traceability; 3 suggested STRIDE threats for PA3; open questions).
+6. Self-corrections made before commit (recorded for the student's journal):
+   - First draft explained Trivy's 24th image alert as a duplicate `brace-expansion` entry. Checking the log showed it is a second installed copy of `pacote` (20.0.1) with the same CVE; the ledger was fixed (TV-18, TV-24).
+   - First draft claimed Node.js uses its own bundled zlib, which the agent could not verify; reworded to what the code shows (no compression middleware, no direct zlib use).
+   - Mitigation IDs were renumbered to remove gaps; a script checked that every threat in the STRIDE matrix has a register entry and a mitigation.
+7. Noted for the student: the master spec copy in the course folder does not name Domain 3's "designated sensitive field" for PA3 encryption; flagged as an open question.
+8. No code changed. Committed with `AI:` labels and pushed to `main`; no release tag.
