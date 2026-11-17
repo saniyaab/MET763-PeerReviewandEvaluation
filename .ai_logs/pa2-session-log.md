@@ -140,3 +140,23 @@ ok i logged in using the built in browswer and give you access to try the previo
 3. Found why: SonarCloud registers `main` as a **short-lived** branch whose merge target is `bootstrap-lockfile`, the temporary branch the agent created in PA1 (now deleted). Every analysis carries the warning `Could not find ref 'bootstrap-lockfile' ...`, so the zero result is inconclusive rather than clean. Verified the branch history in `/code_AI_history.md` (Entry 2) and with `git ls-remote --heads origin`.
 4. Updated `project-assignment-2/sast-triage-report.md` (metadata block, summary row, full section 2.2 ledger with SQ-00 "inconclusive", root cause and fix, new point 6 in section 3) and `project-assignment-2/security-analysis.md` (section 8, item 5). No code changed; no release tag.
 5. Did not change the SonarCloud branch setting: it is a change to the student's SonarCloud project and was not requested. Offered to do it on request and then re-run and re-triage.
+
+## Prompt 8 — 2026-11-17 00:51 ET (student)
+
+~~~~text
+go ahead with steps 2 and 3 ill make the journal update myself
+~~~~
+
+Agent question (agent text): *"SonarCloud still has bootstrap-lockfile as the main branch and main as a short-lived branch, so re-running the pipeline now (steps 2 and 3) would give the same inconclusive 0. Should I first make main the main branch in your SonarCloud project (Administration → Branches), then re-run and re-triage?"*
+
+Student answer (selected): `Yes, change it, then 2 and 3 (Recommended)`
+
+**Agent output summary**
+
+1. Checked SonarCloud: `main` was still SHORT with merge branch `bootstrap-lockfile`.
+2. Tried `POST api/project_branches/set_main`: not available on SonarCloud (404). Instead deleted the short-lived `main` branch entry (which held only the three inconclusive analyses) and renamed the main branch `bootstrap-lockfile` → `main`. Result: one branch, `main`, main/LONG.
+3. Re-ran the pipeline with `workflow_dispatch`: run 44027046164 on `caf67b5`, success (unit 5/5, integration 20/20, Semgrep 0, Trivy unchanged). SonarCloud task on `main` (LONG) had no warnings. Saved the log as `project-assignment-2/pipeline-logs/pa2-run-44027046164.log`.
+4. SonarQube now reports **1 issue**: `tssecurity:S5131` reflected XSS, BLOCKER, `src/routes/evaluations.ts:119`. Read its taint flow (`lab_id` query → CSV header line `aggregation.ts:322` → `res.send`). Triaged it as a **false positive for XSS** (response is `text/csv` with `Content-Disposition: attachment`, both asserted by the CI tests) but a **true positive data flow for CSV formula injection**, so V-08 gained a reflected variant. 0 hotspots, 0 bugs, 0 code smells.
+5. Updated `sast-triage-report.md` (summary, metadata, section 2.2 rewritten with the inconclusive first reading, the fix and SQ-01; section 3; V-08) and `security-analysis.md` (AC-07, AT-4 leaf 1.3, M-08 adds `X-Content-Type-Options: nosniff`, section 8). Updated the pipeline-logs index.
+6. Self-correction before commit: a replacement script matched the first `| M-08 |` in the file, which was the end of threat row T-25, not the M-08 mitigation row. Restored T-25 from git and applied the change to the right row; re-ran the ID cross-check.
+7. No application code changed; no release tag. Journal left to the student, as requested.
