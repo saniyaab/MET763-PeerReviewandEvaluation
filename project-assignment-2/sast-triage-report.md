@@ -124,13 +124,13 @@ No application code changed between the inconclusive runs and this run.
 | TV-15 | `ip-address` (npm CLI) | CVE-2026-111997 | MEDIUM | 10.1.0 → 10.7.4 | TP, not reachable | Percent characters in IPv6 |
 | TV-16 | `ip-address` (npm CLI) | CVE-2026-42338 | MEDIUM | 10.1.0 → 10.1.1 | TP, not reachable | HTML escaping; nothing renders it here |
 | TV-17 | `minimatch` (npm CLI) | CVE-2026-118764 | MEDIUM | 9.0.9 → 11.0.1 | TP, not reachable | Crafted glob pattern expansion |
-| TV-18 | `pacote` 19.0.2 (npm CLI, `node_modules/pacote`) | CVE-2026-9496 | HIGH | 19.0.2 → 21.5.1 | TP, not reachable | Crafted `spec.rawSpec`
+| TV-18 | `pacote` 19.0.2 (npm CLI, `node_modules/pacote`) | CVE-2026-9496 | HIGH | 19.0.2 → 21.5.1 | TP, not reachable | Crafted `spec.rawSpec` |
 | TV-19 | `picomatch` (npm CLI) | CVE-2026-33671 | HIGH | 4.0.3 → 4.0.4 | TP, not reachable | ReDoS via extglob |
 | TV-20 | `picomatch` (npm CLI) | CVE-2026-33672 | MEDIUM | 4.0.3 → (no fix listed) | TP, not reachable | POSIX bracket method injection |
 | TV-21 | `postcss-selector-parser` (npm CLI) | CVE-2026-104844 | MEDIUM | 7.1.1 → 7.1.6 | TP, not reachable | Crafted CSS selectors |
 | TV-22 | `postcss-selector-parser` (npm CLI) | CVE-2026-9358 | LOW | 7.1.1 → 7.1.3 | TP, not reachable | Recursion in AST serialization |
 | TV-23 | `sigstore` (npm CLI) | CVE-2026-48815 | HIGH | 3.1.0 → 4.1.1 | TP, not reachable | `certificateOIDs` ignored |
-| TV-24 | `pacote` 20.0.1 (npm CLI, second copy under `@npmcli/metavuln-calculator/node_modules/pacote`) | CVE-2026-9496 | HIGH | 20.0.1 → 21.5.1 | TP, not reachable | Same CVE as TV-18 in a second installed copy; Trivy counts it separately. Totals match the log: Alpine `Total: 1 (MEDIUM: 1)`; node-pkg `Total: 23 (LOW: 1, MEDIUM: 12, HIGH: 10)`
+| TV-24 | `pacote` 20.0.1 (npm CLI, second copy under `@npmcli/metavuln-calculator/node_modules/pacote`) | CVE-2026-9496 | HIGH | 20.0.1 → 21.5.1 | TP, not reachable | Same CVE as TV-18 in a second installed copy; Trivy counts it separately. Totals match the log: Alpine `Total: 1 (MEDIUM: 1)`; node-pkg `Total: 23 (LOW: 1, MEDIUM: 12, HIGH: 10)` |
 
 **Why TPs and not FPs:** each package is really at the vulnerable version in the shipped image, so the scanner is correct. They are classified low risk because the vulnerable code path (the npm CLI) is never executed by the service. The image still ships them, and a later `docker exec … npm …` or a future `CMD` change would make them reachable. Remediation (section 5): remove npm from the runtime stage or move to a distroless/`node:22-alpine` variant without npm, and rebuild when the base image is patched.
 
