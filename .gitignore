@@ -5,3 +5,5 @@ dist/
 *.log
 !pipeline-logs/*.log
 reports/
+dist-test/
+!project-assignment-2/pipeline-logs/*.log

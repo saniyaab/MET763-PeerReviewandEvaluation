@@ -1,8 +1,18 @@
-# AI Contribution Weight: [100%] AI Generated / [0%] Human Refactored
-# Author: Claude Code agent (claude-opus-5-5) - see code_AI_history.md
+# Language/Stack: GitHub Actions YAML (Node.js 22 / TypeScript, Docker, PostgreSQL 17)
+# Tool: Claude Code agent harness (Claude desktop app), model claude-opus-5-5
+# Prompt Summary: PA1 pipeline prompt; extended by the PA2 prompt "Write API
+#   integration tests for every endpoint and run them in the pipeline ... Point
+#   the Dockerfile, compose file, Sonar config and devsecops.yml at
+#   functional-codebase/" (full verbatim prompts in /.ai_logs/)
+# AI Contribution: 100% AI generated / 0% human refactored
+# Human Modifications: none
+# Verification: GitHub Actions runs (logs saved in pipeline-logs/); human review PENDING
+# Confidence: High
 #
 # DevSecOps pipeline for the Peer Review & Evaluation Gateway (Node.js/TypeScript).
-#   build     - npm ci, TypeScript compile, multi-stage Docker build, compose smoke test
+#   build     - npm ci, TypeScript compile, unit tests, multi-stage Docker build,
+#               docker compose up (app + PostgreSQL), API integration tests
+# Target: project-assignment-2/functional-codebase (PA2 Domain 3 service).
 #   trivy     - dependency (filesystem / package-lock) scan + container image scan
 #   semgrep   - SAST with TypeScript / Node.js / Docker / secrets rulesets
 #   sonarcloud- SAST + code quality on SonarQube Cloud
@@ -26,6 +36,7 @@ permissions:
   contents: read
 
 env:
+  APP_DIR: project-assignment-2/functional-codebase
   IMAGE_NAME: peer-review-evaluation-gateway
   TRIVY_IMAGE: aquasec/trivy:0.69.3
   SEMGREP_IMAGE: semgrep/semgrep:1.150.0
@@ -43,21 +54,28 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
 
       - name: Install dependencies (npm ci)
+        working-directory: ${{ env.APP_DIR }}
         run: npm ci --ignore-scripts
 
       - name: Compile TypeScript
+        working-directory: ${{ env.APP_DIR }}
         run: npm run build
+
+      - name: Unit tests (scoring and statistics)
+        working-directory: ${{ env.APP_DIR }}
+        run: npm run test:unit
 
       - name: Build multi-stage Docker image
         run: docker build --target runtime -t "$IMAGE_NAME:${{ github.sha }}" .
 
-      - name: Smoke test with docker compose (app + database)
+      - name: Start app + database with docker compose
         run: |
           echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" > .env
           docker compose up -d --build
-          for i in $(seq 1 30); do
+          for i in $(seq 1 45); do
             if curl -fsS http://127.0.0.1:3000/health/ready; then echo; break; fi
             sleep 2
           done
@@ -65,6 +83,12 @@ jobs:
           echo "--- /health/ready"; curl -fsS http://127.0.0.1:3000/health/ready; echo
           echo "--- /api/v1";       curl -fsS http://127.0.0.1:3000/api/v1; echo
           docker compose ps
+
+      - name: API integration tests (every Domain 3 endpoint)
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npm run test:integration
 
       - name: Compose logs and teardown
         if: always()
@@ -101,10 +125,13 @@ jobs:
         run: |
           mkdir -p reports
           docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE" fs \
-            --scanners vuln,secret,misconfig --skip-files image.tar --exit-code 0 --format table /src
+            --scanners vuln,secret,misconfig --exit-code 0 --format table \
+            "/src/$APP_DIR"
           docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE" fs \
-            --scanners vuln,secret,misconfig --skip-files image.tar --exit-code 0 --format sarif \
-            --output /src/reports/trivy-fs.sarif /src
+            --scanners vuln,secret,misconfig --exit-code 0 --format sarif \
+            --output /src/reports/trivy-fs.sarif "/src/$APP_DIR"
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE" config \
+            --exit-code 0 --format table /src/Dockerfile
 
       - name: Trivy container image scan
         run: |
@@ -135,7 +162,9 @@ jobs:
           docker run --rm -v "$PWD:/src" -w /src "$SEMGREP_IMAGE" semgrep scan \
             --config p/typescript --config p/nodejs --config p/expressjs \
             --config p/dockerfile --config p/secrets --config p/security-audit \
-            --metrics off --text --sarif-output=reports/semgrep.sarif || true
+            --metrics off --text --sarif-output=reports/semgrep.sarif \
+            --json-output=reports/semgrep.json \
+            "$APP_DIR" Dockerfile docker-compose.yml || true
 
       - name: Upload Semgrep report
         if: always()

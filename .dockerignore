@@ -1,4 +1,6 @@
-# AI Contribution Weight: [100%] AI Generated / [0%] Human Refactored
+# Language/Stack: Docker build-context ignore rules | Tool: Claude Code agent (claude-opus-5-5)
+# AI Contribution: 100% AI generated / 0% human refactored | Human Modifications: none
+# Verification: CI docker build; human review PENDING | Confidence: High
 node_modules
 dist
 .git
@@ -6,3 +8,7 @@ dist
 .env
 *.md
 pipeline-logs
+**/node_modules
+**/dist
+**/dist-test
+.ai_logs

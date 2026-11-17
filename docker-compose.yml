@@ -1,13 +1,23 @@
-# AI Contribution Weight: [100%] AI Generated / [0%] Human Refactored
-# Author: Claude Code agent (claude-opus-5-5) - see code_AI_history.md
-# App + its own single-tenant PostgreSQL database. No other services.
+# Language/Stack: Docker Compose v2 (Node.js 22 app + PostgreSQL 17)
+# Tool: Claude Code agent harness (Claude desktop app), model claude-opus-5-5
+# Prompt Summary: PA1 compose prompt; repointed by the PA2 prompt "Point the
+#   Dockerfile, compose file, Sonar config and devsecops.yml at functional-codebase/"
+# AI Contribution: 100% AI generated / 0% human refactored
+# Human Modifications: none
+# Verification: CI compose up + API integration tests; human review PENDING
+# Confidence: High
+# Runs project-assignment-2/functional-codebase (built by the root Dockerfile)
+# with its own single-tenant PostgreSQL database. No other services.
 # Usage: cp .env.example .env  (set POSTGRES_PASSWORD)  &&  docker compose up --build
 
 services:
   app:
     build:
       context: .
+      dockerfile: Dockerfile
       target: runtime
+      args:
+        APP_DIR: project-assignment-2/functional-codebase
     image: peer-review-evaluation-gateway:local
     environment:
       PORT: "3000"
