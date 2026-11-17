@@ -7,7 +7,7 @@
 // Human Modifications: none
 // Verification:
 //   - CI: run by `npm run test:integration` against the docker compose stack
-//   - Human review: PENDING (student must review and sign off)
+//   - Human review: signed off by the student (Saniya Bhambhvani), 2026-11-17
 // Confidence: Medium
 // File purpose: happy-path API integration tests for every Domain 3 endpoint.
 //   Runs against a live server (BASE_URL, default http://127.0.0.1:3000) backed

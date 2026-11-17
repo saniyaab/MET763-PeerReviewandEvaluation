@@ -7,12 +7,12 @@
 | Author of record | Saniya Bhambhvani |
 | AI tool | Claude (Anthropic) agent, Claude Code / Agent SDK harness in the Claude desktop app (see `/Agent_environment.md`) |
 | Model | `claude-opus-5-5` (Claude Opus 5.5) |
-| Conceptual AI contribution | **~100% AI draft / 0% human edits at commit time.** Update this line after the student's review and revisions |
+| Conceptual AI contribution | **~100% AI generated / 0% human edits.** Reviewed and signed off by the student (see Human verification status) |
 | Inputs given to the AI | `CS763_ProjectDescription.pdf` (PA2 section), `ProjectPortalDomainServices.pdf` (Domain 3), `project-assignment-2/functional-codebase/` at commit `b26062f`, its pipeline log, and `sast-triage-report.md` |
 | Techniques used | Asset identification, security requirements, abuse cases, attack trees (AND/OR), attack surface mapping, DFD with trust boundaries, STRIDE per element, mitigation planning |
 | Prompt summary | "Security analysis: security requirements, abuse cases, attack trees for 3+ abuse cases, an attack surface map, a DFD with a STRIDE matrix for every component, and mitigations for everything found. Base it on this codebase, not generic examples." (full verbatim prompt in [`/.ai_logs/pa2-session-log.md`](../.ai_logs/pa2-session-log.md)) |
 | Session link | https://claude.ai/code/session_01Mj79JHpoGSSrKQhMcsCbL5 |
-| Human verification status | **PENDING.** Student must review every threat and mitigation before the PA2 release tag |
+| Human verification status | **Reviewed and signed off by the student (Saniya Bhambhvani), 2026-11-17.** |
 
 ---
 <!-- /AI_DELIVERABLE_METADATA -->

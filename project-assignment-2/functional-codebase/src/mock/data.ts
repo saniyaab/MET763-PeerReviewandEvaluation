@@ -8,7 +8,7 @@
 // Human Modifications: none
 // Verification:
 //   - CI: build + unit + API integration tests in .github/workflows/devsecops.yml
-//   - Human review: PENDING (student must review and sign off)
+//   - Human review: signed off by the student (Saniya Bhambhvani), 2026-11-17
 // Confidence: Medium
 // File purpose: local static mock data for data owned by other Project Portal
 //   services (users, courses, labs, projects). Seeded into reference tables at

@@ -8,7 +8,7 @@
 // Human Modifications: none
 // Verification:
 //   - CI: unit tests (tests/scoring.test.ts) + API integration tests
-//   - Human review: PENDING (student must review and sign off)
+//   - Human review: signed off by the student (Saniya Bhambhvani), 2026-11-17
 // Confidence: Medium
 // File purpose: pure scoring and statistics functions (no database access).
 // =============================================================================

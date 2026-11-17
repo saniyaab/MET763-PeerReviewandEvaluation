@@ -8,7 +8,7 @@
 // Human Modifications: none
 // Verification:
 //   - CI: build + unit + API integration tests in .github/workflows/devsecops.yml
-//   - Human review: PENDING (student must review and sign off)
+//   - Human review: signed off by the student (Saniya Bhambhvani), 2026-11-17
 // Confidence: Medium
 // File purpose: HTTP error type thrown by services and turned into responses.
 // =============================================================================

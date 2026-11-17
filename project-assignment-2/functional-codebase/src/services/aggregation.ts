@@ -8,7 +8,7 @@
 // Human Modifications: none
 // Verification:
 //   - CI: API integration tests (tests/api.test.ts)
-//   - Human review: PENDING (student must review and sign off)
+//   - Human review: signed off by the student (Saniya Bhambhvani), 2026-11-17
 // Confidence: Medium
 // File purpose: grade aggregation (functional requirement 3) and the
 //   consolidated course/lab report (functional requirement 4).

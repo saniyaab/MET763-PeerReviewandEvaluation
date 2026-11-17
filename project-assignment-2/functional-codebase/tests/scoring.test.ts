@@ -7,7 +7,7 @@
 // Human Modifications: none
 // Verification:
 //   - CI: run by `npm run test:unit` in .github/workflows/devsecops.yml
-//   - Human review: PENDING (student must review and sign off)
+//   - Human review: signed off by the student (Saniya Bhambhvani), 2026-11-17
 // Confidence: High
 // File purpose: unit tests for the pure scoring and statistics functions.
 // =============================================================================

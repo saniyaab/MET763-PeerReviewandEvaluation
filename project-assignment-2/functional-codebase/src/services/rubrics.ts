@@ -8,7 +8,7 @@
 // Human Modifications: none
 // Verification:
 //   - CI: API integration tests (tests/api.test.ts)
-//   - Human review: PENDING (student must review and sign off)
+//   - Human review: signed off by the student (Saniya Bhambhvani), 2026-11-17
 // Confidence: Medium
 // File purpose: rubric management (functional requirement 1): hierarchical
 //   criteria, project/course/lab scoping and project-to-rubric binding.

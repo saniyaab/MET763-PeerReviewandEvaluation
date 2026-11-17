@@ -7,11 +7,11 @@
 | Author of record | Saniya Bhambhvani |
 | AI tool | Claude (Anthropic) agent, Claude Code / Agent SDK harness in the Claude desktop app (see `/Agent_environment.md`) |
 | Model | `claude-opus-5-5` (Claude Opus 5.5) |
-| Conceptual AI contribution | **~100% AI draft / 0% human edits at commit time.** Update this line after the student's review and revisions |
+| Conceptual AI contribution | **~100% AI generated / 0% human edits.** Reviewed and signed off by the student (see Human verification status) |
 | Inputs given to the AI | `CS763_ProjectDescription.pdf` (PA2 section), `project-assignment-2/functional-codebase/` at commit `b26062f`, pipeline log `project-assignment-2/pipeline-logs/pa2-run-44004909266.log` |
 | Prompt summary | "write sast-triage-report.md … put every Semgrep, SonarQube and Trivy alert in a ledger as a true or false positive … review the code by hand and document at least 3 confirmed vulnerabilities from different layers, each with its CWE ID, file/line and root cause" (full verbatim prompt in [`/.ai_logs/pa2-session-log.md`](../.ai_logs/pa2-session-log.md)) |
 | Session link | https://claude.ai/code/session_01Mj79JHpoGSSrKQhMcsCbL5 |
-| Human verification status | **PENDING.** Student must re-check each finding against the code before the PA2 release tag |
+| Human verification status | **Reviewed and signed off by the student (Saniya Bhambhvani), 2026-11-17.** |
 | SonarQube data source | Read on 2026-11-17 through the SonarCloud Web API in the Claude desktop app's built-in browser, signed in as the student. With the student's approval the agent fixed the project's branch setup (section 2.2) and re-ran the pipeline before triaging |
 
 ---
